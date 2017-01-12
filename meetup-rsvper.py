@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright (c) 2011, Jonathan Beluch
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
     # * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
     # * Neither the name of the <organization> nor the
       # names of its contributors may be used to endorse or promote products
       # derived from this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -47,7 +47,7 @@
       would be added to the waiting list. The script will output a message when
       this happens. Then you would have to RSVP manualy through the website.
     * I have no idea how it handles events that require payments but I can
-      guarantee it's not going to work.    
+      guarantee it's not going to work.
     * The Meetup API has a rate limit. It is fairly large, so you shouldn't run
       into any issues if you only run this hourly. However, the script does not
       check any of the rate limiting information. So, you might run into rate
@@ -67,9 +67,9 @@ import json
 #### Start Configuration - Make sure this section is complete
 
 # Get your API_KEY here: http://www.meetup.com/meetup_api/key/
-API_KEY = ''
+API_KEY = '291e116d277e532e3e16106234684f14'
 # Get your MEMBER_ID here: http://www.meetup.com/account/
-MEMBER_ID = '' 
+MEMBER_ID = '195831274'
 
 #### End Configuration
 
@@ -78,7 +78,7 @@ EVENTS_URL = urljoin(API_BASE_URL, '/2/events')
 RSVPS_URL = urljoin(API_BASE_URL, '/2/rsvps')
 POST_RSVP_URL = urljoin(API_BASE_URL, '/rsvp')
 GROUPS_URL = urljoin(API_BASE_URL, '/2/groups')
-CONFIG_FILENAME = 'groups.config'
+CONFIG_FILENAME = '/Users/andreafalzetti/dev/repos/meetup-rsvper/groups.config'
 
 def log(msg):
     print '[%s]: %s' % (dt.utcnow().isoformat(), msg)
@@ -91,7 +91,7 @@ def get_config():
             config.readfp(f)
     except IOError:
         sys.exit('Cannot read from %s. Please run this script with the '
-                 '--set-groups option to generate a new config file.' % 
+                 '--set-groups option to generate a new config file.' %
                  CONFIG_FILENAME)
     return config
 
@@ -103,7 +103,7 @@ def write_config(config):
 def _request(url, body=None):
     '''Returns the response for a given url. If body is given, it will be
     passed to urlopen and a POST request will be made instead of GET.
-    
+
     If there is an HTTP Error, the response body will still be returned since
     the Meetup API will sometimes return a JSON body even when the response has
     an HTTP error code.
@@ -154,7 +154,7 @@ def get_my_rsvp(event_id):
     rsvps = resp['results']
     # Since we can only get all the RSVPs for an event, we need to filter on
     # MEMBER_ID to determine if the current user has RSVP'd.
-    my_rsvp = filter(lambda rsvp: str(rsvp['member']['member_id']) == 
+    my_rsvp = filter(lambda rsvp: str(rsvp['member']['member_id']) ==
                      MEMBER_ID, rsvps)
     return my_rsvp
 
@@ -180,26 +180,25 @@ def rsvp_yes(event_id):
 
 ## Script level functions
 def rsvp_for_group_events(group_id):
-    '''Loops through a group's (specified by group_id) upcoming events and 
+    '''Loops through a group's (specified by group_id) upcoming events and
     RSVP's yes if an event doesn't have a current RSVP. All activity in this
     function is printed to stdout.'''
 
     events = get_events(group_id)
-   
+
     for event in events:
         group_name = event['group']['name']
         event_name = event['name']
         event_id = event['id']
         event_url = event['event_url']
-
         my_rsvp = get_my_rsvp(event['id'])
         if not my_rsvp:
-            if event['yes_rsvp_count'] >= event['rsvp_limit']:
+            if 'rsvp_limit' in event and event['yes_rsvp_count'] >= event['rsvp_limit']:
                 log('[%s] Cannot RSVP to %s, the event is full. Please visit '
                     '%s to add yourself to the waiting list if one is '
                     'available.' % (
-                    event['group']['name'], 
-                    event['name'], 
+                    event['group']['name'],
+                    event['name'],
                     event['event_url']
                 ))
             elif rsvp_yes(event_id):
@@ -215,9 +214,9 @@ def rsvp_for_group_events(group_id):
                 ))
         else:
             log('[%s] No new non-RSVP\'d events.' % group_name)
-        
+
 def rsvp_for_groups():
-    '''Parses the uncommented groups from the config file and 
+    '''Parses the uncommented groups from the config file and
     calls rsvp_for_group_events for each group found.
     '''
     config = get_config()
@@ -245,7 +244,7 @@ def set_auto_rsvp_groups():
     config_groups = []
     for group in groups:
         ans = raw_input(
-            'Automatically RSVP yes for %s? [y/n]: ' % group['name']
+            'Automatically RSVP yes for %s? [y/n]: ' % group['name'].encode('utf-8')
         ).lower()
 
         while ans not in ['y', 'n']:
@@ -253,7 +252,7 @@ def set_auto_rsvp_groups():
             ans = raw_input(
                 'Automatically RSVP yes for %s? [y/n]: ' % group['name']
             ).lower()
-        
+
         if ans == 'y':
             # We want to auto-rsvp for this group
             config_groups.append((str(group['id']), group['name']))
@@ -264,7 +263,7 @@ def set_auto_rsvp_groups():
 
     config = ConfigParser()
     config.add_section('rsvp_groups')
-    [config.set('rsvp_groups', group_id, group_name) for group_id, group_name
+    [config.set('rsvp_groups', group_id, group_name.encode('utf-8')) for group_id, group_name
         in config_groups]
     write_config(config)
 
@@ -284,7 +283,7 @@ def main():
         set_auto_rsvp_groups()
     else:
         rsvp_for_groups()
-        
+
 
 if __name__ == '__main__':
     main()
